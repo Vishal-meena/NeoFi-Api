@@ -6,13 +6,13 @@ import enum
 
 Base = declarative_base()
 
-# Role-based access control
+
 class Role(str, enum.Enum):
     OWNER = "owner"
     EDITOR = "editor"
     VIEWER = "viewer"
 
-# Association table for event permissions
+
 event_permissions = Table(
     "event_permissions",
     Base.metadata,
@@ -32,7 +32,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
+    
     owned_events = relationship("Event", back_populates="owner")
     shared_events = relationship("Event", secondary=event_permissions, back_populates="shared_users")
 
@@ -59,7 +59,7 @@ class Event(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
+    
     owner = relationship("User", back_populates="owned_events")
     shared_users = relationship("User", secondary=event_permissions, back_populates="shared_events")
     versions = relationship("EventVersion", back_populates="event")
@@ -81,6 +81,6 @@ class EventVersion(Base):
     version_number = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationships
+    
     event = relationship("Event", back_populates="versions")
     modified_by = relationship("User")

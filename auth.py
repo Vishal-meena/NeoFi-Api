@@ -11,7 +11,7 @@ import models
 import schemas
 
 # Security constants
-SECRET_KEY = "your-secret-key"  # In production, use env variables
+SECRET_KEY = "your-secret-key" 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

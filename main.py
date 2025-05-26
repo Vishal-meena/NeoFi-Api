@@ -18,7 +18,7 @@ app = FastAPI(title="NeoFi Event Management API")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,8 +73,7 @@ async def refresh_token(
 
 @app.post("/api/auth/logout")
 async def logout():
-    # In a stateless JWT system, the client simply discards the token
-    # For added security, you could implement a token blacklist
+
     return {"message": "Successfully logged out"}
 
 # Event Management endpoints
@@ -113,19 +112,19 @@ async def list_events(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    # Get events owned by the user
+    
     query = db.query(models.Event).filter(models.Event.owner_id == current_user.id)
     
-    # Apply date filters if provided
+   
     if start_date:
         query = query.filter(models.Event.start_time >= start_date)
     if end_date:
         query = query.filter(models.Event.end_time <= end_date)
     
-    # Apply pagination
+    
     events = query.offset(skip).limit(limit).all()
     
-    # TODO: Also include events shared with the user
+    
     
     return events
 
@@ -139,17 +138,17 @@ async def get_event(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if user has access to the event
+    
     if event.owner_id != current_user.id:
-        # TODO: Check if event is shared with the user
+    
         raise HTTPException(status_code=403, detail="Not authorized to access this event")
     
-    # Get permissions for the event
+    
     permissions = db.query(models.event_permissions).filter(
         models.event_permissions.c.event_id == event_id
     ).all()
     
-    # Convert to dict for response
+    
     event_dict = {
         **event.__dict__,
         "permissions": [
@@ -171,17 +170,17 @@ async def update_event(
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if user has permission to update
+    
     if db_event.owner_id != current_user.id:
-        # TODO: Check if user has EDITOR role
+        
         raise HTTPException(status_code=403, detail="Not authorized to update this event")
     
-    # Update event with non-None values
+    
     update_data = event_update.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_event, key, value)
     
-    # Create new version
+    
     current_version = db.query(models.EventVersion).filter(
         models.EventVersion.event_id == event_id
     ).order_by(models.EventVersion.version_number.desc()).first()
@@ -216,7 +215,7 @@ async def delete_event(
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if user has permission to delete
+    
     if db_event.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this event")
     
@@ -242,7 +241,7 @@ async def create_batch_events(
         db.commit()
         db.refresh(db_event)
         
-        # Create initial version
+        
         event_version = models.EventVersion(
             **event_data.dict(),
             event_id=db_event.id,
@@ -268,25 +267,25 @@ async def share_event(
     if not db_event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if user is the owner
+    
     if db_event.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the owner can share this event")
     
-    # Add permissions
+    
     for perm in permissions:
-        # Check if user exists
+        
         user = db.query(models.User).filter(models.User.id == perm.user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail=f"User with id {perm.user_id} not found")
         
-        # Check if permission already exists
+        
         existing_perm = db.query(models.event_permissions).filter(
             models.event_permissions.c.event_id == event_id,
             models.event_permissions.c.user_id == perm.user_id
         ).first()
         
         if existing_perm:
-            # Update existing permission
+            
             db.execute(
                 models.event_permissions.update().where(
                     models.event_permissions.c.event_id == event_id,
@@ -294,7 +293,7 @@ async def share_event(
                 ).values(role=perm.role)
             )
         else:
-            # Add new permission
+           
             db.execute(
                 models.event_permissions.insert().values(
                     event_id=event_id,
@@ -305,7 +304,7 @@ async def share_event(
     
     db.commit()
     
-    # Get updated permissions
+    
     permissions = db.query(models.event_permissions).filter(
         models.event_permissions.c.event_id == event_id
     ).all()
@@ -326,17 +325,17 @@ async def get_event_version(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    # Check if event exists and user has access
+    
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if user has access to the event
+    
     if event.owner_id != current_user.id:
-        # TODO: Check if event is shared with the user
+        
         raise HTTPException(status_code=403, detail="Not authorized to access this event")
     
-    # Get the specific version
+    
     version = db.query(models.EventVersion).filter(
         models.EventVersion.event_id == event_id,
         models.EventVersion.version_number == version_id
@@ -354,17 +353,17 @@ async def rollback_event(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    # Check if event exists and user has access
+    
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if user has permission to update
+    
     if event.owner_id != current_user.id:
-        # TODO: Check if user has EDITOR role
+        
         raise HTTPException(status_code=403, detail="Not authorized to update this event")
     
-    # Get the specific version
+    
     version = db.query(models.EventVersion).filter(
         models.EventVersion.event_id == event_id,
         models.EventVersion.version_number == version_id
@@ -373,7 +372,7 @@ async def rollback_event(
     if not version:
         raise HTTPException(status_code=404, detail="Version not found")
     
-    # Update event with version data
+    
     event.title = version.title
     event.description = version.description
     event.start_time = version.start_time
@@ -383,7 +382,7 @@ async def rollback_event(
     event.recurrence_pattern = version.recurrence_pattern
     event.recurrence_end_date = version.recurrence_end_date
     
-    # Create new version (the rollback itself is a new version)
+    
     current_version = db.query(models.EventVersion).filter(
         models.EventVersion.event_id == event_id
     ).order_by(models.EventVersion.version_number.desc()).first()
@@ -415,22 +414,22 @@ async def get_event_changelog(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    # Check if event exists and user has access
+    
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if user has access to the event
+    
     if event.owner_id != current_user.id:
-        # TODO: Check if event is shared with the user
+        
         raise HTTPException(status_code=403, detail="Not authorized to access this event")
     
-    # Get all versions ordered by version number
+    
     versions = db.query(models.EventVersion).filter(
         models.EventVersion.event_id == event_id
     ).order_by(models.EventVersion.version_number).all()
     
-    # Get user info for each version
+    
     changelog = []
     for version in versions:
         modifier = db.query(models.User).filter(models.User.id == version.modified_by_id).first()
@@ -460,17 +459,17 @@ async def get_event_diff(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    # Check if event exists and user has access
+    
     event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    # Check if user has access to the event
+    
     if event.owner_id != current_user.id:
-        # TODO: Check if event is shared with the user
+        
         raise HTTPException(status_code=403, detail="Not authorized to access this event")
     
-    # Get the two versions
+    
     version1 = db.query(models.EventVersion).filter(
         models.EventVersion.event_id == event_id,
         models.EventVersion.version_number == version_id1
@@ -484,7 +483,7 @@ async def get_event_diff(
     if not version1 or not version2:
         raise HTTPException(status_code=404, detail="One or both versions not found")
     
-    # Compare the versions
+    
     differences = []
     for field in ["title", "description", "start_time", "end_time", "location", 
                   "is_recurring", "recurrence_pattern", "recurrence_end_date"]:

@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
 from models import Role, RecurrencePattern
 
-# User schemas
+
 class UserBase(BaseModel):
     username: str
     email: EmailStr
